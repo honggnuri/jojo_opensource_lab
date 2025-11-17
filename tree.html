@@ -1,64 +1,159 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
-<meta charset="UTF-8" />
-<title>소원 트리</title>
-<style>
-    body {
-        font-family: Arial; background: #222; color: white;
-        text-align: center; padding-top: 40px;
-    }
-    h1 { margin-bottom: 20px; font-size: 32px; }
-    #tree {
-        width: 350px; height: 500px; margin: 0 auto;
-        background: #2f8f2f; border-radius: 15px; padding: 20px;
-        overflow-y: auto; position: relative; box-shadow: 0 0 15px rgba(0,0,0,0.5);
-    }
-    .wish-card {
-        background: #ffe36e; padding: 12px 14px; margin: 10px 0;
-        color: #333; border-radius: 12px; font-size: 18px; font-weight: bold;
-        animation: pop 0.3s ease-out; word-break: keep-all;
-    }
-    @keyframes pop {
-        0% { transform: scale(0.7); opacity: 0; }
-        100% { transform: scale(1); opacity: 1; }
-    }
-</style>
+    <meta charset="UTF-8" />
+    <title>소원 트리</title>
+    <style>
+        /* [폰트 정의 추가] 강원교육새음 */
+        @font-face {
+            font-family: 'GangwonEducationSaeum';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2201-2@1.0/GangwonEduSaeeum_OTFMediumA.woff') format('woff');
+            font-weight: normal;
+            font-display: swap;
+        }
+
+        body {
+            /* 폰트 적용 */
+            font-family: 'GangwonEducationSaeum', sans-serif;
+            color: white;
+            text-align: center;
+            padding-top: 40px;
+            letter-spacing: -6%;
+            margin: 0;
+
+            background: url('./src/tree/BG_tree.png') no-repeat center top fixed;
+            background-size: auto 100vh;
+
+            height: 100vh;
+            overflow: hidden;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 40px;
+            /* 폰트 특성에 맞춰 조금 키움 */
+            text-shadow: 0 0 10px rgba(21, 143, 15, 0.156), 0 0 20px rgba(21, 143, 15, 0.156);
+        }
+
+        p {
+            margin-bottom: 30px;
+            font-size: 24px;
+            text-shadow: 0 0 5px rgba(21, 143, 15, 0.156);
+        }
+
+        #tree-container {
+            width: 100%;
+            max-width: 600px;
+            height: calc(100vh - 150px);
+            overflow: hidden;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 40px;
+        }
+
+        #wish-list {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .wish-card {
+            background: transparent;
+            box-shadow: none;
+
+            padding: 5px 0;
+            margin: 2px 0;
+
+            color: #ffffff;
+            text-shadow:
+                -1px -1px 0 rgba(21, 143, 15, 0.156),
+                1px -1px 0 rgba(21, 143, 15, 0.156),
+                -1px 1px 0 rgba(21, 143, 15, 0.156),
+                1px 1px 0 rgba(21, 143, 15, 0.156),
+                0 0 10px rgba(21, 143, 15, 0.156);
+
+            /* [폰트 크기 조정] 손글씨 폰트는 얇아서 기존보다 키워야 잘 보입니다 */
+            font-size: 30px;
+            font-weight: normal;
+            /* 이 폰트는 bold가 없거나 뭉개질 수 있어 normal 권장 */
+
+            animation: slideUp 0.5s ease-out;
+            word-break: keep-all;
+            width: 100%;
+            text-align: center;
+
+            flex-shrink: 0;
+        }
+
+        @keyframes slideUp {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 </head>
+
 <body>
 
-<h1>🎄 실시간 소원 트리 🎄</h1>
-<p>누군가 소원을 보내면 여기 달립니다 ✨</p>
-<div id="tree"></div>
+    <h1></h1>
+    <p></p>
 
-<script>
-// 방금 만드신 AWS 주소입니다!
-const WSS_URL = "wss://12spzvb7ok.execute-api.ap-southeast-2.amazonaws.com/production/";
-const ws = new WebSocket(WSS_URL);
+    <div id="tree-container">
+        <div id="wish-list"></div>
+    </div>
 
-ws.onopen = () => console.log("📡 서버 연결 성공! (tree)");
+    <script>
+        const WSS_URL = "wss://12spzvb7ok.execute-api.ap-southeast-2.amazonaws.com/production/";
+        const ws = new WebSocket(WSS_URL);
 
-ws.onmessage = (event) => {
-    console.log("📩 메시지 도착:", event.data);
-    try {
-        const data = JSON.parse(event.data);
-        if (data.message) {
-            addWish(data.message);
+        let wishCount = 0;
+        const MAX_WISHES_DISPLAYED = 10;
+        const wishList = document.getElementById("wish-list");
+
+        ws.onopen = () => console.log("📡 서버 연결 성공! (tree)");
+
+        ws.onmessage = (event) => {
+            console.log("📩 메시지 도착:", event.data);
+            try {
+                const data = JSON.parse(event.data);
+                if (data.message) {
+                    addWish(data.message);
+                }
+            } catch (e) {
+                console.log("무시된 메시지:", event.data);
+            }
+        };
+
+        function addWish(text) {
+            const div = document.createElement("div");
+            div.className = "wish-card";
+            div.textContent = text;
+
+            wishList.appendChild(div);
+            wishCount++;
+
+            if (wishList.children.length > MAX_WISHES_DISPLAYED) {
+                wishList.removeChild(wishList.children[0]);
+            }
         }
-    } catch (e) {
-        console.log("무시된 메시지:", event.data);
-    }
-};
-
-function addWish(text) {
-    const div = document.createElement("div");
-    div.className = "wish-card";
-    div.textContent = text;
-    
-    const tree = document.getElementById("tree");
-    tree.appendChild(div);
-    tree.scrollTop = tree.scrollHeight; // 자동 스크롤
-}
-</script>
+    </script>
 </body>
+
 </html>
