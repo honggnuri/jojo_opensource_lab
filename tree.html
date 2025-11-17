@@ -3,91 +3,62 @@
 <head>
 <meta charset="UTF-8" />
 <title>소원 트리</title>
-
 <style>
     body {
-        font-family: Arial;
-        background: #222;
-        color: white;
-        text-align: center;
-        padding-top: 40px;
+        font-family: Arial; background: #222; color: white;
+        text-align: center; padding-top: 40px;
     }
-
-    h1 {
-        margin-bottom: 20px;
-        font-size: 32px;
-    }
-
+    h1 { margin-bottom: 20px; font-size: 32px; }
     #tree {
-        width: 350px;
-        height: 500px;
-        margin: 0 auto;
-        background: #2f8f2f;
-        border-radius: 15px;
-        padding: 20px;
-        overflow-y: auto;
-        position: relative;
-        box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        width: 350px; height: 500px; margin: 0 auto;
+        background: #2f8f2f; border-radius: 15px; padding: 20px;
+        overflow-y: auto; position: relative; box-shadow: 0 0 15px rgba(0,0,0,0.5);
     }
-
     .wish-card {
-        background: #ffe36e;
-        padding: 12px 14px;
-        margin: 10px 0;
-        color: #333;
-        border-radius: 12px;
-        font-size: 18px;
-        font-weight: bold;
-        animation: pop 0.3s ease-out;
-        word-break: keep-all;
+        background: #ffe36e; padding: 12px 14px; margin: 10px 0;
+        color: #333; border-radius: 12px; font-size: 18px; font-weight: bold;
+        animation: pop 0.3s ease-out; word-break: keep-all;
     }
-
     @keyframes pop {
         0% { transform: scale(0.7); opacity: 0; }
         100% { transform: scale(1); opacity: 1; }
     }
 </style>
 </head>
-
 <body>
 
 <h1>🎄 실시간 소원 트리 🎄</h1>
 <p>누군가 소원을 보내면 여기 달립니다 ✨</p>
-
 <div id="tree"></div>
+
 <script>
-new WebSocket("wss://32b2lm6ilc.execute-api.ap-southeast-2.amazonaws.com/production/");
+// 방금 만드신 AWS 주소입니다!
+const WSS_URL = "wss://12spzvb7ok.execute-api.ap-southeast-2.amazonaws.com/production/";
+const ws = new WebSocket(WSS_URL);
 
-
-ws.onopen = () => {
-    console.log("📡 WebSocket 연결됨 (tree.html)");
-};
+ws.onopen = () => console.log("📡 서버 연결 성공! (tree)");
 
 ws.onmessage = (event) => {
-    console.log("📩 RAW:", event.data);  // 👈 이 줄만 추가!
-    
+    console.log("📩 메시지 도착:", event.data);
     try {
         const data = JSON.parse(event.data);
-        if (!data.message) return;
-        addWish(data.message);
+        if (data.message) {
+            addWish(data.message);
+        }
     } catch (e) {
-        console.log("❌ JSON 파싱 오류:", e);
+        console.log("무시된 메시지:", event.data);
     }
-};
-
-ws.onerror = (e) => {
-    console.log("❌ WebSocket 오류", e);
 };
 
 function addWish(text) {
     const div = document.createElement("div");
     div.className = "wish-card";
     div.textContent = text;
-
-    document.getElementById("tree").appendChild(div);
-
-    // 자동 스크롤
+    
     const tree = document.getElementById("tree");
-    tree.scrollTop = tree.scrollHeight;
+    tree.appendChild(div);
+    tree.scrollTop = tree.scrollHeight; // 자동 스크롤
 }
 </script>
+</body>
+</html>
