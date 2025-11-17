@@ -54,7 +54,7 @@
 
 <button onclick="sendWish()">소원 보내기</button>
 <script>
-const ws = new WebSocket("wss://32b2lm6ilc.execute-api.ap-southeast-2.amazonaws.com/production/");
+const ws = new WebSocket("wss://32b2lm6ilc.execute-api.ap-southeast-2.amazonaws.com/production");
 
 ws.onopen = () => {
     console.log("📡 WebSocket 연결됨 (wish.html)");
