@@ -60,10 +60,9 @@ ws.onopen = () => {
     console.log("📡 WebSocket 연결됨 (wish.html)");
 };
 
-ws.onerror = (e) => {
-    console.log("❌ WebSocket 오류", e);
-    alert("WebSocket 연결 오류! AWS 설정을 다시 확인하세요.");
-};
+ws.onerror = e => console.log("🔥 WebSocket 에러:", e);
+ws.onclose = e => console.log("❌ WebSocket 끊김:", e);
+
 
 function sendWish() {
     const wish = document.getElementById("wishBox").value.trim();
