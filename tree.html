@@ -63,14 +63,14 @@ ws.onopen = () => {
 };
 
 ws.onmessage = (event) => {
-    console.log("📩 받은 메시지:", event.data);
-
+    console.log("📩 RAW:", event.data);  // 👈 이 줄만 추가!
+    
     try {
         const data = JSON.parse(event.data);
         if (!data.message) return;
         addWish(data.message);
     } catch (e) {
-        console.log("JSON 파싱 오류:", e);
+        console.log("❌ JSON 파싱 오류:", e);
     }
 };
 
