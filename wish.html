@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>소원 빌기</title>
+<style>
+    body {
+        font-family: Arial;
+        background: #f8f0ff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 60px;
+    }
+
+    h1 {
+        margin-bottom: 30px;
+        color: #5a2ea6;
+    }
+
+    textarea {
+        width: 80%;
+        height: 150px;
+        padding: 15px;
+        font-size: 18px;
+        border-radius: 10px;
+        border: 2px solid #c4a1ff;
+        resize: none;
+        outline: none;
+    }
+
+    button {
+        margin-top: 25px;
+        padding: 15px 40px;
+        font-size: 18px;
+        background: #7c4dff;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    button:hover {
+        background: #6834ff;
+    }
+</style>
+</head>
+<body>
+
+<h1>✨ 소원을 적어보세요 ✨</h1>
+
+<textarea id="wishBox" placeholder="여기에 소원을 적으세요..."></textarea>
+
+<button onclick="sendWish()">소원 보내기</button>
+<script>
+const ws = new WebSocket("wss://32b2lm6ilc.execute-api.ap-southeast-2.amazonaws.com/production");
+
+ws.onopen = () => {
+    console.log("📡 WebSocket 연결됨 (wish.html)");
+};
+
+ws.onerror = (e) => {
+    console.log("❌ WebSocket 오류", e);
+    alert("WebSocket 연결 오류! AWS 설정을 다시 확인하세요.");
+};
+
+function sendWish() {
+    const wish = document.getElementById("wishBox").value.trim();
+    if (wish.length === 0) {
+        alert("소원을 적어주세요!");
+        return;
+    }
+
+    const data = {
+        action: "sendWish",
+        message: wish
+    };
+
+    ws.send(JSON.stringify(data));
+
+    alert("🎉 소원을 보냈어요!");
+    document.getElementById("wishBox").value = "";
+}
+</script>

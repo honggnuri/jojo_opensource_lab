@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>러너 게임 - 시작 화면</title>
+
+<style>
+    body {
+        margin:0;
+        padding:0;
+        background:#222;
+        height:100vh;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        flex-direction:column;
+        color:white;
+        font-family:Arial;
+    }
+
+    h1 {
+        font-size:40px;
+        margin-bottom:40px;
+    }
+
+    .start-btn {
+        padding:15px 30px;
+        background:#00c896;
+        border:none;
+        color:#000;
+        font-size:24px;
+        font-weight:bold;
+        border-radius:12px;
+        cursor:pointer;
+    }
+</style>
+</head>
+<body>
+
+<h1>러너 게임</h1>
+
+<button class="start-btn" onclick="location.href='game.html'">
+    게임 시작
+</button>
+
+</body>
+</html>
