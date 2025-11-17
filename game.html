@@ -11,19 +11,41 @@
         padding: 0;
         overflow: hidden;
         background: #222;
+        /* 게임을 화면 중앙에 배치하기 위한 설정 */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+
+    /* ★ 게임 전체를 감싸는 틀 (이 기준점 안에서 GIF가 움직입니다) */
+    #game-container {
+        position: relative; /* 기준점 */
+        width: 800px;
+        height: 300px;
+        background: #333;
+        overflow: hidden; /* 밖으로 나가는 요소 숨김 */
     }
 
     canvas {
         display: block;
-        height: 100vh;
-        width: auto;
-        max-width: 100vw;
-        margin: 0 auto;
-        background: #333;
+        width: 100%;
+        height: 100%;
+    }
+
+    /* ★ 플레이어 GIF (캔버스 위에 둥둥 떠있음) */
+    #player-gif {
+        position: absolute;
+        z-index: 10; /* 캔버스보다 위에 */
+        width: 60px; /* 캐릭터 크기 */
+        height: 60px;
+        top: 0;
+        left: 0;
+        will-change: transform; /* 성능 최적화 */
     }
 
     .ui-btn {
-        position: fixed;
+        position: absolute; /* 컨테이너 기준 절대 위치 */
         left: 50%;
         transform: translateX(-50%);
         padding: 14px 30px;
@@ -40,45 +62,52 @@
 
     #restartBtn { top: 55%; }
     #clearBtn { 
-        top: 65%;            /* ★ 게임클리어 버튼 위치 수정 */
+        top: 65%;
         background:#ffe36e; 
     }
 </style>
 </head>
 <body>
 
-<!-- 버튼 -->
-<button id="restartBtn" class="ui-btn">다시 시작</button>
-<button id="clearBtn" class="ui-btn">종강이다!</button>
+<div id="game-container">
+    <img id="player-gif" src="src/game/cha.gif" alt="Player">
 
-<canvas id="game" width="800" height="300"></canvas>
+    <button id="restartBtn" class="ui-btn">다시 시작</button>
+    <button id="clearBtn" class="ui-btn">종강이다!</button>
+
+    <canvas id="game" width="800" height="300"></canvas>
+</div>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+const playerEl = document.getElementById("player-gif"); // GIF 요소 가져오기
 let isMobile = ('ontouchstart' in window);
 
-/* roundRect 구현 */
-ctx.roundRect = function(x, y, w, h, r) {
-    if (w < 2 * r) r = w / 2;
-    if (h < 2 * r) r = h / 2;
-    this.beginPath();
-    this.moveTo(x + r, y);
-    this.arcTo(x + w, y, x + w, y + h, r);
-    this.arcTo(x + w, y + h, x, y + h, r);
-    this.arcTo(x, y + h, x, y, r);
-    this.arcTo(x, y, x + w, y, r);
-    this.closePath();
-};
+/* 도트 이미지 선명하게 */
+ctx.imageSmoothingEnabled = false;
+
+/* roundRect 폴리필 */
+if (!ctx.roundRect) {
+    ctx.roundRect = function(x, y, w, h, r) {
+        if (w < 2 * r) r = w / 2;
+        if (h < 2 * r) r = h / 2;
+        this.beginPath();
+        this.moveTo(x + r, y);
+        this.arcTo(x + w, y, x + w, y + h, r);
+        this.arcTo(x + w, y + h, x, y + h, r);
+        this.arcTo(x, y + h, x, y, r);
+        this.arcTo(x, y, x + w, y, r);
+        this.closePath();
+    };
+}
 
 /* 게임 상태 */
 let gameState = "play";
-
-/* 버튼 */
 const restartBtn = document.getElementById("restartBtn");
 const clearBtn = document.getElementById("clearBtn");
 
-/* 이미지 fallback */
+/* 이미지 그리기 함수 */
 function drawImageAuto(img, x, y, w, h, fallbackColor) {
     if (img && img.complete && img.naturalWidth > 0) {
         ctx.drawImage(img, x, y, w, h);
@@ -88,12 +117,11 @@ function drawImageAuto(img, x, y, w, h, fallbackColor) {
     }
 }
 
-let playerImg = new Image(); playerImg.src = "src/game/cha.gif";
-let obstacleImg = new Image(); obstacleImg.src = "";
-let coffeeImg = new Image(); coffeeImg.src = "";
-let bgImg = new Image(); bgImg.src = "";
+/* 이미지 경로 설정 */
+let obstacleImg = new Image(); obstacleImg.src = "src/game/obstacle.png"; 
+let coffeeImg = new Image(); coffeeImg.src = "src/game/coffee.png"; 
+let bgImg = new Image(); bgImg.src = "src/game/bg.png"; 
 
-/* 게임 요소 */
 let player, bg, obstacles, coffees;
 let frame, playerDistance, nextPatternDistance;
 
@@ -102,16 +130,14 @@ const obstacleTypes = [
     { width: 40, height: 30 },
     { width: 25, height: 45 }
 ];
-
 const obstacleHeights = [260, 210];
 
-/* 초기화 */
 function initGame() {
     player = {
         x: 80,
         y: 200,
-        width: 40,
-        height: 40,
+        width: 60, 
+        height: 60,
         vy: 0,
         gravity: 1.2,
         jumpPower: -16,
@@ -119,18 +145,18 @@ function initGame() {
         speed: isMobile ? 8 : 5,
         hp: 3
     };
-
     bg = { x: 0, width: 20000, height: 300 };
     obstacles = [];
     coffees = [];
     frame = 0;
     playerDistance = 0;
     nextPatternDistance = 500;
+    
+    // 게임 시작 시 GIF 보이기
+    playerEl.style.display = "block";
 }
-
 initGame();
 
-/* 점프 */
 function doJump() {
     if (gameState !== "play") return;
     if (player.jumpCount < 2) {
@@ -140,186 +166,128 @@ function doJump() {
 }
 
 if (isMobile) {
-    canvas.addEventListener("touchstart", e => {
-        e.preventDefault();
-        doJump();
-    });
+    // 컨테이너 전체에 터치 이벤트
+    document.getElementById("game-container").addEventListener("touchstart", e => { e.preventDefault(); doJump(); }, { passive: false });
 } else {
-    canvas.addEventListener("mousedown", doJump);
+    document.getElementById("game-container").addEventListener("mousedown", doJump);
+    window.addEventListener("keydown", e => { if (e.code === "Space") doJump(); });
 }
 
-/* 장애물 */
 function spawnObstacle(offset = 0, h = "random") {
     const t = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
-    
-    let yBase = h === "random"
-        ? obstacleHeights[Math.floor(Math.random() * obstacleHeights.length)]
-        : h;
-
-    obstacles.push({
-        x: canvas.width + offset + 50,
-        y: yBase - t.height,
-        width: t.width,
-        height: t.height
-    });
+    let yBase = h === "random" ? obstacleHeights[Math.floor(Math.random() * obstacleHeights.length)] : h;
+    obstacles.push({ x: canvas.width + offset + 50, y: yBase - t.height, width: t.width, height: t.height });
 }
 
 function spawnPattern() {
     const p = Math.floor(Math.random() * 4);
-
     if (p === 0) spawnObstacle(0, "random");
     if (p === 1) { spawnObstacle(0, 260); spawnObstacle(150, 260); }
     if (p === 2) spawnObstacle(0, 210);
     if (p === 3) { spawnObstacle(0, 260); spawnObstacle(200, 210); }
-
     nextPatternDistance = playerDistance + 450 + Math.random() * 300;
 }
 
 function spawnCoffee() {
-    coffees.push({
-        x: canvas.width + 50,
-        y: 150,
-        width: 25,
-        height: 25
-    });
+    coffees.push({ x: canvas.width + 50, y: 150, width: 25, height: 25 });
 }
 
-/* 충돌 */
 function collide(a, b) {
-    return (
-        a.x < b.x + b.width &&
-        a.x + a.width > b.x &&
-        a.y < b.y + b.height &&
-        a.y + a.height > b.y
-    );
+    return (a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y);
 }
 
-/* update */
 function updateGame() {
     if (gameState !== "play") return;
-
     bg.x -= player.speed;
-
     if (bg.x + bg.width <= canvas.width) {
         gameState = "clear";
         clearBtn.style.display = "block";
         return;
     }
-
     player.vy += player.gravity;
     player.y += player.vy;
-
     if (player.y >= 260 - player.height) {
         player.y = 260 - player.height;
         player.vy = 0;
         player.jumpCount = 0;
     }
+    
+    /* ★ GIF 위치 업데이트 (JS 좌표 -> CSS 좌표) */
+    playerEl.style.transform = `translate(${player.x}px, ${player.y}px)`;
+    playerEl.style.width = player.width + "px";
+    playerEl.style.height = player.height + "px";
 
     obstacles.forEach(o => o.x -= player.speed);
     coffees.forEach(c => c.x -= player.speed);
-
     obstacles = obstacles.filter(o => {
         if (collide(player, o)) {
             player.hp--;
-            if (player.hp <= 0) {
-                gameState = "over";
+            if (player.hp <= 0) { 
+                gameState = "over"; 
                 restartBtn.style.display = "block";
+                // 게임 오버 시 GIF 멈춘 것처럼 보이게 하거나 숨김 처리 등 가능
             }
             return false;
         }
         return o.x + o.width > 0;
     });
-
     coffees = coffees.filter(c => {
-        if (collide(player, c)) {
-            if (player.hp < 3) player.hp++;
-            return false;
-        }
+        if (collide(player, c)) { if (player.hp < 3) player.hp++; return false; }
         return c.x + c.width > 0;
     });
-
     playerDistance += player.speed;
-
     if (playerDistance >= nextPatternDistance) spawnPattern();
     if (frame % 600 === 0) spawnCoffee();
-
     frame++;
 }
 
-/* UI */
 function drawUI() {
-    const progress = playerDistance / (bg.width - canvas.width);
+    const maxDist = bg.width - canvas.width;
+    const currentDist = Math.abs(bg.x);
+    let progress = currentDist / maxDist;
+    if (progress > 1) progress = 1;
 
     ctx.fillStyle = "#555";
-    ctx.roundRect(250, 20, 300, 12, 6);
-    ctx.fill();
-
-    ctx.fillStyle = "#00FFAA";
-    ctx.roundRect(250, 20, 300 * progress, 12, 6);
-    ctx.fill();
-
+    if(ctx.roundRect) {
+        ctx.roundRect(250, 20, 300, 12, 6); ctx.fill();
+        ctx.fillStyle = "#00FFAA"; ctx.beginPath();
+        ctx.roundRect(250, 20, 300 * progress, 12, 6); ctx.fill();
+    } else {
+        ctx.fillRect(250, 20, 300, 12);
+        ctx.fillStyle = "#00FFAA"; ctx.fillRect(250, 20, 300 * progress, 12);
+    }
     for (let i = 0; i < 3; i++) {
-        drawImageAuto(
-            coffeeImg,
-            10 + i * 30,
-            40,
-            20,
-            20,
-            i < player.hp ? "#EBC15A" : "#555"
-        );
+        drawImageAuto(coffeeImg, 10 + i * 30, 40, 20, 20, i < player.hp ? "#EBC15A" : "#555");
     }
 }
 
-/* draw */
 function drawGame() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    
+    // 배경
     drawImageAuto(bgImg, bg.x, 0, bg.width, bg.height, "#444");
-
-    ctx.fillStyle = "#666";
-    ctx.fillRect(0, 260, canvas.width, 5);
-
-    drawImageAuto(playerImg, player.x, player.y, player.width, player.height, "#4DB6FF");
-
-    obstacles.forEach(o =>
-        drawImageAuto(obstacleImg, o.x, o.y, o.width, o.height, "#FF5252")
-    );
-
-    coffees.forEach(c =>
-        drawImageAuto(coffeeImg, c.x, c.y, c.width, c.height, "#EBC15A")
-    );
-
+    
+    // 바닥
+    ctx.fillStyle = "#666"; ctx.fillRect(0, 260, canvas.width, 5);
+    
+    // ★ 플레이어는 여기서 그리지 않습니다! (HTML img 태그가 대신 함)
+    
+    // 장애물
+    obstacles.forEach(o => drawImageAuto(obstacleImg, o.x, o.y, o.width, o.height, "#FF5252"));
+    
+    // 커피
+    coffees.forEach(c => drawImageAuto(coffeeImg, c.x, c.y, c.width, c.height, "#EBC15A"));
+    
     if (gameState === "play") drawUI();
-
-    if (gameState === "over") {
-        ctx.fillStyle = "red";
-        ctx.font = "40px Arial";
-        ctx.fillText("GAME OVER", 260, 150);
-    }
-
-    if (gameState === "clear") {
-        ctx.fillStyle = "yellow";
-        ctx.font = "40px Arial";
-        ctx.fillText("GAME CLEAR!", 260, 120);   /* ★ 텍스트 위치 위로 이동 */
-    }
+    if (gameState === "over") { ctx.fillStyle = "red"; ctx.font = "bold 40px Arial"; ctx.fillText("GAME OVER", 280, 150); }
+    if (gameState === "clear") { ctx.fillStyle = "yellow"; ctx.font = "bold 40px Arial"; ctx.fillText("GAME CLEAR!", 260, 120); }
 }
 
-/* loop */
-function loop() {
-    updateGame();
-    drawGame();
-    requestAnimationFrame(loop);
-}
+function loop() { updateGame(); drawGame(); requestAnimationFrame(loop); }
 loop();
 
-/* 버튼 이벤트 */
-restartBtn.onclick = () => {
-    location.href = "index.html";
-};
-
-clearBtn.onclick = () => {
-    location.href = "wish.html";   /* ★ 종강이다 클릭 시 소원 페이지 이동 */
-};
+restartBtn.onclick = () => { location.reload(); };
+clearBtn.onclick = () => { location.href = "wish.html"; };
 </script>
 
 </body>
