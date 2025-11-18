@@ -3,26 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Runner Game</title>
+<title>Runner Game - Full Screen</title>
 
 <style>
     html, body {
         margin: 0;
         padding: 0;
-        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        overflow: hidden; /* 스크롤 방지 */
         background: #222;
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
     }
 
+    /* 게임 컨테이너: 내부는 800x300으로 고정하고 CSS/JS로 확대합니다 */
     #game-container {
         position: relative;
-        width: 800px;
-        height: 300px;
+        width: 800px;  /* 게임 내부 로직용 너비 */
+        height: 300px; /* 게임 내부 로직용 높이 */
         background: #333;
         overflow: hidden;
+        box-shadow: 0 0 20px rgba(0,0,0,0.5); /* 외곽선 효과 */
+        /* 중앙 정렬을 위한 설정은 JS resize 함수에서 제어합니다 */
     }
 
     canvas {
@@ -31,7 +35,6 @@
         height: 100%;
     }
 
-    /* 플레이어 GIF */
     #player-gif {
         position: absolute;
         z-index: 10;
@@ -78,11 +81,37 @@
 </div>
 
 <script>
+const container = document.getElementById("game-container");
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const playerEl = document.getElementById("player-gif");
 let isMobile = ('ontouchstart' in window);
 
+// === [1. 화면 크기 자동 조절 로직 추가] ===
+function resizeGame() {
+    const gameWidth = 800;
+    const gameHeight = 300;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    // 가로/세로 비율 중 더 작은 쪽에 맞춰서 확대 비율 계산 (화면 꽉 차게)
+    const scaleX = windowWidth / gameWidth;
+    const scaleY = windowHeight / gameHeight;
+    const scale = Math.min(scaleX, scaleY);
+
+    // 스케일 적용
+    container.style.transform = `scale(${scale})`;
+    
+    // 스케일 후 화면 중앙에 위치하도록 마진이나 위치 조정이 필요할 수 있음
+    // 여기서는 transform으로 크기만 조절하고 flexbox가 중앙 정렬 담당
+}
+
+// 창 크기가 바뀔 때마다 실행
+window.addEventListener('resize', resizeGame);
+resizeGame(); // 초기 실행
+
+
+// === [게임 로직 설정] ===
 ctx.imageSmoothingEnabled = false;
 
 if (!ctx.roundRect) {
@@ -107,7 +136,6 @@ const clearBtn = document.getElementById("clearBtn");
 let coffeeImg = new Image(); coffeeImg.src = "src/game/coffee.png"; 
 let bgImg = new Image(); bgImg.src = "src/game/bg.png"; 
 
-// 장애물 이미지 배열
 const obstacleSources = [
     "src/game/obstacle1.png", 
     "src/game/obstacle2.png", 
@@ -149,7 +177,7 @@ function initGame() {
         jumpPower: -14, 
         jumpCount: 0,
         speed: isMobile ? 13 : 6, 
-        hp: 3 // [설정] 초기 목숨 3개
+        hp: 3 
     };
     bg = { x: 0, width: 8700, height: 300 };
     
@@ -174,17 +202,17 @@ function doJump() {
     }
 }
 
-if (isMobile) {
-    document.getElementById("game-container").addEventListener("touchstart", e => { 
-        e.preventDefault(); 
-        doJump(); 
-    }, { passive: false });
-} else {
-    document.getElementById("game-container").addEventListener("mousedown", doJump);
-    window.addEventListener("keydown", e => { 
-        if (e.code === "Space") doJump(); 
-    });
-}
+// 이벤트 리스너 (document 전체에 걸어서 확대되어도 터치 잘 먹히게 수정)
+document.body.addEventListener("touchstart", e => { 
+    e.preventDefault(); 
+    doJump(); 
+}, { passive: false });
+
+document.body.addEventListener("mousedown", doJump);
+window.addEventListener("keydown", e => { 
+    if (e.code === "Space") doJump(); 
+});
+
 
 function spawnObstacle(offset = 0, h = "random") {
     const t = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
@@ -242,17 +270,35 @@ function collide(player, target) {
     );
 }
 
+// === [2. 수정된 업데이트 로직 (엔딩 연출 포함)] ===
 function updateGame() {
     if (gameState !== "play") return;
 
-    bg.x -= player.speed * 0.7;
+    // 배경 끝 도달 확인
+    let isEndingPhase = (bg.x + bg.width <= canvas.width);
 
-    if (bg.x + bg.width <= canvas.width) {
-        gameState = "clear";
-        clearBtn.style.display = "block";
-        return;
+    if (!isEndingPhase) {
+        // [일반 주행]
+        bg.x -= player.speed * 0.7;
+        obstacles.forEach(o => o.x -= player.speed);
+        coffees.forEach(c => c.x -= player.speed);
+
+        playerDistance += player.speed;
+        if (playerDistance >= nextPatternDistance) spawnPattern();
+        if (frame % 400 === 0) spawnCoffee();
+    } else {
+        // [엔딩 연출]: 배경 멈춤, 캐릭터 앞으로 이동
+        player.x += player.speed;
+        
+        // 캐릭터가 화면 중앙에 오면 클리어
+        if (player.x >= (canvas.width / 2) - (player.width / 2)) {
+            gameState = "clear";
+            clearBtn.style.display = "block";
+            return;
+        }
     }
 
+    // [공통 물리 적용]
     player.vy += player.gravity;
     player.y += player.vy;
     if (player.y >= 260 - player.height) {
@@ -265,7 +311,7 @@ function updateGame() {
     playerEl.style.width = player.width + "px";
     playerEl.style.height = player.height + "px";
 
-    obstacles.forEach(o => o.x -= player.speed);
+    // 충돌 체크
     obstacles = obstacles.filter(o => {
         if (collide(player, o)) {
             player.hp--;
@@ -278,19 +324,13 @@ function updateGame() {
         return o.x + o.width > 0;
     });
 
-    coffees.forEach(c => c.x -= player.speed);
     coffees = coffees.filter(c => {
         if (collide(player, c)) { 
-            if (player.hp < 3) player.hp++; // [수정] 최대 체력 3으로 제한
+            if (player.hp < 3) player.hp++;
             return false; 
         }
         return c.x + c.width > 0;
     });
-
-    playerDistance += player.speed;
-    if (playerDistance >= nextPatternDistance) spawnPattern();
-    
-    if (frame % 400 === 0) spawnCoffee();
     
     frame++;
 }
@@ -311,14 +351,10 @@ function drawUI() {
         ctx.fillStyle = "#00FFAA"; ctx.fillRect(250, 20, 300 * progress, 12);
     }
 
-    // [수정] 목숨 그리기
-    // 1. 반복문을 3회(목숨 3개)까지만 수행
-    // 2. else 문을 삭제하여, 목숨이 깎인 자리에는 아무것도 그리지 않음
     for (let i = 0; i < 3; i++) { 
         if (i < player.hp) {
             drawImageAuto(coffeeImg, 10 + i * 30, 40, 20, 20, "#EBC15A");
         } 
-        // else { ... } <-- 이 부분이 삭제됨 (회색 사각형 제거)
     }
 }
 
@@ -338,19 +374,22 @@ function drawGame() {
     });
     
     if (gameState === "play") drawUI();
+    
     if (gameState === "over") { 
         ctx.fillStyle = "rgba(0,0,0,0.5)";
         ctx.fillRect(0,0,canvas.width, canvas.height);
         ctx.fillStyle = "red"; 
         ctx.font = "bold 40px Arial"; 
-        ctx.fillText("GAME OVER", canvas.width/2 - 120, canvas.height/2); 
+        ctx.textAlign = "center";
+        ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2); 
     }
     if (gameState === "clear") { 
         ctx.fillStyle = "rgba(0,0,0,0.5)";
         ctx.fillRect(0,0,canvas.width, canvas.height);
         ctx.fillStyle = "yellow"; 
         ctx.font = "bold 40px Arial"; 
-        ctx.fillText("GAME CLEAR!", canvas.width/2 - 130, canvas.height/2); 
+        ctx.textAlign = "center";
+        ctx.fillText("GAME CLEAR!", canvas.width/2, canvas.height/2); 
     }
 }
 
