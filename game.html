@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Runner Game - Fixed Random Angles</title>
+<title>Runner Game - Mobile Fix & Fast Jump</title>
 
 <style>
     /* 폰트 설정 */
@@ -62,9 +62,11 @@
         padding: 0;
         cursor: pointer;
         display: none;
-        z-index: 99;
-        width: 180px; 
+        z-index: 99; /* 캔버스보다 위에 오도록 */
+        width: 200px; 
         height: auto; 
+        /* 모바일 터치 영역 확보를 위해 터치 액션 설정 */
+        touch-action: manipulation;
     }
 
     #restartBtn { top: 50%; }
@@ -150,7 +152,6 @@ let gameState = "play";
 let player, bg, obstacles, coffees;
 let frame, playerDistance, nextPatternDistance;
 
-// 장애물 크기 (70px)
 const obstacleTypes = [
     { width: 70, height: 70 }, 
     { width: 70, height: 70 },
@@ -159,14 +160,15 @@ const obstacleTypes = [
 const obstacleHeights = [260, 210];
 
 function initGame() {
+    // [수정됨] 물리 값 조절 (빠르고 묵직한 점프)
     player = {
         x: 80,
         y: 200,
         width: 60, 
         height: 60,
         vy: 0,
-        gravity: 0.7,
-        jumpPower: -14, 
+        gravity: 1.5,    // 기존 0.7 -> 1.5 (더 빨리 떨어짐)
+        jumpPower: -22,  // 기존 -14 -> -22 (더 세게 튐)
         jumpCount: 0,
         speed: isMobile ? 13 : 6, 
         hp: 3 
@@ -194,17 +196,31 @@ function doJump() {
     }
 }
 
-document.body.addEventListener("touchstart", e => { e.preventDefault(); doJump(); }, { passive: false });
-document.body.addEventListener("mousedown", doJump);
+// [수정됨] 모바일 터치 이벤트 핸들러 수정
+document.body.addEventListener("touchstart", e => { 
+    // 터치된 요소(target)가 버튼(.ui-btn)이면 기본 동작 허용(클릭)하고 점프하지 않음
+    if (e.target.classList.contains('ui-btn')) {
+        return; 
+    }
+
+    // 그 외(게임 화면)를 터치했을 때만 스크롤 방지 및 점프
+    e.preventDefault(); 
+    doJump(); 
+}, { passive: false });
+
+document.body.addEventListener("mousedown", (e) => {
+    if (e.target.classList.contains('ui-btn')) return;
+    doJump();
+});
+
 window.addEventListener("keydown", e => { if (e.code === "Space") doJump(); });
 
-// [수정] 랜덤 각도로 고정 생성 (회전 속도 제거)
 function spawnObstacle(offset = 0, h = "random") {
     const t = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
     let yBase = h === "random" ? obstacleHeights[Math.floor(Math.random() * obstacleHeights.length)] : h;
     const randomImg = obstacleImages[Math.floor(Math.random() * obstacleImages.length)];
 
-    // 0 ~ 360도 (2*PI) 사이의 랜덤 각도 고정값 생성
+    // 랜덤 각도 고정
     const randomAngle = Math.random() * Math.PI * 2;
 
     obstacles.push({ 
@@ -213,7 +229,7 @@ function spawnObstacle(offset = 0, h = "random") {
         width: t.width, 
         height: t.height,
         img: randomImg,
-        angle: randomAngle // 고정된 각도 할당
+        angle: randomAngle
     });
 }
 
@@ -236,7 +252,6 @@ function spawnCoffee() {
     });
 }
 
-// 충돌 판정 (여유롭게)
 function collide(player, target) {
     const marginX = 20; 
     const marginY = 15; 
@@ -259,7 +274,6 @@ function updateGame() {
 
         obstacles.forEach(o => {
             o.x -= player.speed;
-            // [수정] 여기서 angle을 변경하지 않음 (고정된 상태로 이동만 함)
         });
         
         coffees.forEach(c => c.x -= player.speed);
@@ -276,6 +290,7 @@ function updateGame() {
         }
     }
 
+    // 물리 엔진
     player.vy += player.gravity;
     player.y += player.vy;
     if (player.y >= 260 - player.height) {
@@ -343,9 +358,7 @@ function drawGame() {
     
     obstacles.forEach(o => {
         ctx.save(); 
-        // 1. 장애물 중심점으로 이동
         ctx.translate(o.x + o.width / 2, o.y + o.height / 2);
-        // 2. 생성될 때 정해진 고정 각도로 회전
         ctx.rotate(o.angle);
         
         if (o.img && o.img.complete && o.img.naturalWidth > 0) {
