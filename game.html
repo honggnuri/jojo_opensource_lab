@@ -3,30 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Runner Game - Full Screen</title>
+<title>Runner Game - Fixed Random Angles</title>
 
 <style>
+    /* 폰트 설정 */
+    @font-face {
+        font-family: 'NeoDonggeunmo';
+        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.3/NeoDunggeunmo.woff') format('woff');
+        font-weight: normal;
+        font-display: swap;
+    }
+
     html, body {
         margin: 0;
         padding: 0;
         width: 100%;
         height: 100%;
-        overflow: hidden; /* 스크롤 방지 */
+        overflow: hidden;
         background: #222;
         display: flex;
         justify-content: center;
         align-items: center;
+        font-family: 'NeoDonggeunmo', sans-serif;
     }
 
-    /* 게임 컨테이너: 내부는 800x300으로 고정하고 CSS/JS로 확대합니다 */
     #game-container {
         position: relative;
-        width: 800px;  /* 게임 내부 로직용 너비 */
-        height: 300px; /* 게임 내부 로직용 높이 */
+        width: 800px;
+        height: 300px;
         background: #333;
         overflow: hidden;
-        box-shadow: 0 0 20px rgba(0,0,0,0.5); /* 외곽선 효과 */
-        /* 중앙 정렬을 위한 설정은 JS resize 함수에서 제어합니다 */
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
 
     canvas {
@@ -50,23 +57,19 @@
         position: absolute;
         left: 50%;
         transform: translateX(-50%);
-        padding: 14px 30px;
-        background: #00c896;
         border: none;
-        border-radius: 12px;
-        color: #000;
-        font-size: 22px;
-        font-weight: bold;
+        background: transparent;
+        padding: 0;
         cursor: pointer;
         display: none;
         z-index: 99;
+        width: 180px; 
+        height: auto; 
     }
 
-    #restartBtn { top: 55%; }
-    #clearBtn { 
-        top: 65%;
-        background: #ffe36e; 
-    }
+    #restartBtn { top: 50%; }
+    #clearBtn { top: 60%; }
+
 </style>
 </head>
 <body>
@@ -74,8 +77,8 @@
 <div id="game-container">
     <img id="player-gif" src="src/game/cha.gif" alt="Player">
 
-    <button id="restartBtn" class="ui-btn">다시 시작</button>
-    <button id="clearBtn" class="ui-btn">종강이다!</button>
+    <img id="restartBtn" class="ui-btn" src="src/ui/restart_btn.png" alt="다시 시작">
+    <img id="clearBtn" class="ui-btn" src="src/ui/clear_btn.png" alt="종강이다!">
 
     <canvas id="game" width="800" height="300"></canvas>
 </div>
@@ -85,33 +88,25 @@ const container = document.getElementById("game-container");
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const playerEl = document.getElementById("player-gif");
+const restartBtn = document.getElementById("restartBtn");
+const clearBtn = document.getElementById("clearBtn");
 let isMobile = ('ontouchstart' in window);
 
-// === [1. 화면 크기 자동 조절 로직 추가] ===
 function resizeGame() {
     const gameWidth = 800;
     const gameHeight = 300;
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
 
-    // 가로/세로 비율 중 더 작은 쪽에 맞춰서 확대 비율 계산 (화면 꽉 차게)
     const scaleX = windowWidth / gameWidth;
     const scaleY = windowHeight / gameHeight;
     const scale = Math.min(scaleX, scaleY);
 
-    // 스케일 적용
     container.style.transform = `scale(${scale})`;
-    
-    // 스케일 후 화면 중앙에 위치하도록 마진이나 위치 조정이 필요할 수 있음
-    // 여기서는 transform으로 크기만 조절하고 flexbox가 중앙 정렬 담당
 }
-
-// 창 크기가 바뀔 때마다 실행
 window.addEventListener('resize', resizeGame);
-resizeGame(); // 초기 실행
+resizeGame();
 
-
-// === [게임 로직 설정] ===
 ctx.imageSmoothingEnabled = false;
 
 if (!ctx.roundRect) {
@@ -128,11 +123,6 @@ if (!ctx.roundRect) {
     };
 }
 
-let gameState = "play";
-const restartBtn = document.getElementById("restartBtn");
-const clearBtn = document.getElementById("clearBtn");
-
-/* 이미지 설정 */
 let coffeeImg = new Image(); coffeeImg.src = "src/game/coffee.png"; 
 let bgImg = new Image(); bgImg.src = "src/game/bg.png"; 
 
@@ -156,13 +146,15 @@ function drawImageAuto(img, x, y, w, h, fallbackColor) {
     }
 }
 
+let gameState = "play";
 let player, bg, obstacles, coffees;
 let frame, playerDistance, nextPatternDistance;
 
+// 장애물 크기 (70px)
 const obstacleTypes = [
-    { width: 40, height: 40 },
-    { width: 40, height: 40 },
-    { width: 40, height: 40 }
+    { width: 70, height: 70 }, 
+    { width: 70, height: 70 },
+    { width: 70, height: 70 }
 ];
 const obstacleHeights = [260, 210];
 
@@ -202,41 +194,37 @@ function doJump() {
     }
 }
 
-// 이벤트 리스너 (document 전체에 걸어서 확대되어도 터치 잘 먹히게 수정)
-document.body.addEventListener("touchstart", e => { 
-    e.preventDefault(); 
-    doJump(); 
-}, { passive: false });
-
+document.body.addEventListener("touchstart", e => { e.preventDefault(); doJump(); }, { passive: false });
 document.body.addEventListener("mousedown", doJump);
-window.addEventListener("keydown", e => { 
-    if (e.code === "Space") doJump(); 
-});
+window.addEventListener("keydown", e => { if (e.code === "Space") doJump(); });
 
-
+// [수정] 랜덤 각도로 고정 생성 (회전 속도 제거)
 function spawnObstacle(offset = 0, h = "random") {
     const t = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
     let yBase = h === "random" ? obstacleHeights[Math.floor(Math.random() * obstacleHeights.length)] : h;
-    
     const randomImg = obstacleImages[Math.floor(Math.random() * obstacleImages.length)];
+
+    // 0 ~ 360도 (2*PI) 사이의 랜덤 각도 고정값 생성
+    const randomAngle = Math.random() * Math.PI * 2;
 
     obstacles.push({ 
         x: canvas.width + offset + 50, 
         y: yBase - t.height, 
         width: t.width, 
         height: t.height,
-        img: randomImg 
+        img: randomImg,
+        angle: randomAngle // 고정된 각도 할당
     });
 }
 
 function spawnPattern() {
     const p = Math.floor(Math.random() * 4);
     if (p === 0) spawnObstacle(0, "random");
-    if (p === 1) { spawnObstacle(0, 260); spawnObstacle(150, 260); }
+    if (p === 1) { spawnObstacle(0, 260); spawnObstacle(200, 260); }
     if (p === 2) spawnObstacle(0, 210);
-    if (p === 3) { spawnObstacle(0, 260); spawnObstacle(200, 210); }
+    if (p === 3) { spawnObstacle(0, 260); spawnObstacle(250, 210); }
     
-    nextPatternDistance = playerDistance + 550 + Math.random() * 300;
+    nextPatternDistance = playerDistance + 600 + Math.random() * 300;
 }
 
 function spawnCoffee() {
@@ -248,57 +236,46 @@ function spawnCoffee() {
     });
 }
 
+// 충돌 판정 (여유롭게)
 function collide(player, target) {
-    const marginX = 15; 
-    const marginY = 10; 
-
-    const pLeft = player.x + marginX;
-    const pRight = player.x + player.width - marginX;
-    const pTop = player.y + marginY;
-    const pBottom = player.y + player.height - marginY;
-
-    const tLeft = target.x;
-    const tRight = target.x + target.width;
-    const tTop = target.y;
-    const tBottom = target.y + target.height;
+    const marginX = 20; 
+    const marginY = 15; 
 
     return (
-        pLeft < tRight &&
-        pRight > tLeft &&
-        pTop < tBottom &&
-        pBottom > tTop
+        player.x + marginX < target.x + target.width - marginX &&
+        player.x + player.width - marginX > target.x + marginX &&
+        player.y + marginY < target.y + target.height - marginY &&
+        player.y + player.height - marginY > target.y + marginY
     );
 }
 
-// === [2. 수정된 업데이트 로직 (엔딩 연출 포함)] ===
 function updateGame() {
     if (gameState !== "play") return;
 
-    // 배경 끝 도달 확인
     let isEndingPhase = (bg.x + bg.width <= canvas.width);
 
     if (!isEndingPhase) {
-        // [일반 주행]
-        bg.x -= player.speed * 0.7;
-        obstacles.forEach(o => o.x -= player.speed);
+        bg.x -= player.speed * 0.5;
+
+        obstacles.forEach(o => {
+            o.x -= player.speed;
+            // [수정] 여기서 angle을 변경하지 않음 (고정된 상태로 이동만 함)
+        });
+        
         coffees.forEach(c => c.x -= player.speed);
 
         playerDistance += player.speed;
         if (playerDistance >= nextPatternDistance) spawnPattern();
         if (frame % 400 === 0) spawnCoffee();
     } else {
-        // [엔딩 연출]: 배경 멈춤, 캐릭터 앞으로 이동
         player.x += player.speed;
-        
-        // 캐릭터가 화면 중앙에 오면 클리어
         if (player.x >= (canvas.width / 2) - (player.width / 2)) {
             gameState = "clear";
-            clearBtn.style.display = "block";
+            clearBtn.style.display = "block"; 
             return;
         }
     }
 
-    // [공통 물리 적용]
     player.vy += player.gravity;
     player.y += player.vy;
     if (player.y >= 260 - player.height) {
@@ -311,17 +288,16 @@ function updateGame() {
     playerEl.style.width = player.width + "px";
     playerEl.style.height = player.height + "px";
 
-    // 충돌 체크
     obstacles = obstacles.filter(o => {
         if (collide(player, o)) {
             player.hp--;
             if (player.hp <= 0) { 
                 gameState = "over"; 
-                restartBtn.style.display = "block";
+                restartBtn.style.display = "block"; 
             }
             return false; 
         }
-        return o.x + o.width > 0;
+        return o.x + o.width > -100; 
     });
 
     coffees = coffees.filter(c => {
@@ -366,7 +342,19 @@ function drawGame() {
     ctx.fillStyle = "#666"; ctx.fillRect(0, 260, canvas.width, 5);
     
     obstacles.forEach(o => {
-        drawImageAuto(o.img, o.x, o.y, o.width, o.height, "#FF5252");
+        ctx.save(); 
+        // 1. 장애물 중심점으로 이동
+        ctx.translate(o.x + o.width / 2, o.y + o.height / 2);
+        // 2. 생성될 때 정해진 고정 각도로 회전
+        ctx.rotate(o.angle);
+        
+        if (o.img && o.img.complete && o.img.naturalWidth > 0) {
+            ctx.drawImage(o.img, -o.width / 2, -o.height / 2, o.width, o.height);
+        } else {
+            ctx.fillStyle = "#FF5252";
+            ctx.fillRect(-o.width / 2, -o.height / 2, o.width, o.height);
+        }
+        ctx.restore(); 
     });
     
     coffees.forEach(c => {
@@ -379,7 +367,7 @@ function drawGame() {
         ctx.fillStyle = "rgba(0,0,0,0.5)";
         ctx.fillRect(0,0,canvas.width, canvas.height);
         ctx.fillStyle = "red"; 
-        ctx.font = "bold 40px Arial"; 
+        ctx.font = "bold 40px 'NeoDonggeunmo'";
         ctx.textAlign = "center";
         ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2); 
     }
@@ -387,7 +375,7 @@ function drawGame() {
         ctx.fillStyle = "rgba(0,0,0,0.5)";
         ctx.fillRect(0,0,canvas.width, canvas.height);
         ctx.fillStyle = "yellow"; 
-        ctx.font = "bold 40px Arial"; 
+        ctx.font = "bold 40px 'NeoDonggeunmo'";
         ctx.textAlign = "center";
         ctx.fillText("GAME CLEAR!", canvas.width/2, canvas.height/2); 
     }
@@ -402,6 +390,7 @@ loop();
 
 restartBtn.onclick = () => { location.reload(); };
 clearBtn.onclick = () => { location.href = "wish.html"; };
+
 </script>
 
 </body>
