@@ -160,19 +160,28 @@ const obstacleTypes = [
 const obstacleHeights = [260, 210];
 
 function initGame() {
-    // [수정됨] 물리 값 조절 (빠르고 묵직한 점프)
+    // [수정됨] 웹(PC)에서는 부드럽게, 모바일에서는 묵직하게 분기 처리
+    // isMobile ? 모바일값 : 웹값
+    
     player = {
         x: 80,
         y: 200,
         width: 60, 
         height: 60,
         vy: 0,
-        gravity: 1.5,    // 기존 0.7 -> 1.5 (더 빨리 떨어짐)
-        jumpPower: -22,  // 기존 -14 -> -22 (더 세게 튐)
+        
+        // 웹: 0.8 (부드러움) / 모바일: 1.5 (묵직함)
+        gravity: isMobile ? 1.5 : 0.8,    
+        
+        // 웹: -16 (적당함) / 모바일: -22 (강함)
+        // 중력을 낮추면 점프력도 낮춰야 화면 밖으로 나가지 않습니다.
+        jumpPower: isMobile ? -22 : -16,  
+        
         jumpCount: 0,
-        speed: isMobile ? 13 : 6, 
+        speed: isMobile ? 11 : 8, // 웹에서는 속도도 6->8로 살짝 올려야 지루하지 않음
         hp: 3 
     };
+
     bg = { x: 0, width: 8700, height: 300 };
     
     obstacles = [];
@@ -270,7 +279,7 @@ function updateGame() {
     let isEndingPhase = (bg.x + bg.width <= canvas.width);
 
     if (!isEndingPhase) {
-        bg.x -= player.speed * 0.5;
+        bg.x -= player.speed * 0.3;
 
         obstacles.forEach(o => {
             o.x -= player.speed;
