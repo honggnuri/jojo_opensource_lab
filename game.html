@@ -1,419 +1,447 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Runner Game - Mobile Fix & Fast Jump</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Runner Game - Mobile Fix & Fast Jump</title>
 
-<style>
-    /* 폰트 설정 */
-    @font-face {
-        font-family: 'NeoDonggeunmo';
-        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.3/NeoDunggeunmo.woff') format('woff');
-        font-weight: normal;
-        font-display: swap;
-    }
+    <style>
+        /* 폰트 설정 */
+        @font-face {
+            font-family: 'NeoDonggeunmo';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.3/NeoDunggeunmo.woff') format('woff');
+            font-weight: normal;
+            font-display: swap;
+        }
 
-    html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        background: #222;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-family: 'NeoDonggeunmo', sans-serif;
-    }
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'NeoDonggeunmo', sans-serif;
+        }
 
-    #game-container {
-        position: relative;
-        width: 800px;
-        height: 300px;
-        background: #333;
-        overflow: hidden;
-        box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    }
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 300px;
+            background: #333;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
 
-    canvas {
-        display: block;
-        width: 100%;
-        height: 100%;
-    }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
 
-    #player-gif {
-        position: absolute;
-        z-index: 10;
-        width: 40px;
-        height: 40px;
-        top: 0;
-        left: 0;
-        will-change: transform;
-        display: none;
-    }
+        #player-gif {
+            position: absolute;
+            z-index: 10;
+            width: 40px;
+            height: 40px;
+            top: 0;
+            left: 0;
+            will-change: transform;
+            display: none;
+        }
 
-    .ui-btn {
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-        border: none;
-        background: transparent;
-        padding: 0;
-        cursor: pointer;
-        display: none;
-        z-index: 99; /* 캔버스보다 위에 오도록 */
-        width: 200px; 
-        height: auto; 
-        /* 모바일 터치 영역 확보를 위해 터치 액션 설정 */
-        touch-action: manipulation;
-    }
+        .ui-btn {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            border: none;
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+            display: none;
+            z-index: 99;
+            /* 캔버스보다 위에 오도록 */
+            width: 200px;
+            height: auto;
+            /* 모바일 터치 영역 확보를 위해 터치 액션 설정 */
+            touch-action: manipulation;
+        }
 
-    #restartBtn { top: 50%; }
-    #clearBtn { top: 60%; }
+        #restartBtn {
+            top: 50%;
+        }
 
-</style>
+        #clearBtn {
+            top: 60%;
+        }
+    </style>
 </head>
+
 <body>
 
-<div id="game-container">
-    <img id="player-gif" src="src/game/cha.gif" alt="Player">
+    <div id="game-container">
+        <img id="player-gif" src="src/game/cha.gif" alt="Player">
 
-    <img id="restartBtn" class="ui-btn" src="src/ui/restart_btn.png" alt="다시 시작">
-    <img id="clearBtn" class="ui-btn" src="src/ui/clear_btn.png" alt="종강이다!">
+        <img id="restartBtn" class="ui-btn" src="src/ui/restart_btn.png" alt="다시 시작">
+        <img id="clearBtn" class="ui-btn" src="src/ui/clear_btn.png" alt="종강이다!">
 
-    <canvas id="game" width="800" height="300"></canvas>
-</div>
+        <canvas id="game" width="800" height="300"></canvas>
+    </div>
 
-<script>
-const container = document.getElementById("game-container");
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-const playerEl = document.getElementById("player-gif");
-const restartBtn = document.getElementById("restartBtn");
-const clearBtn = document.getElementById("clearBtn");
-let isMobile = ('ontouchstart' in window);
+    <script>
+        const container = document.getElementById("game-container");
+        const canvas = document.getElementById("game");
+        const ctx = canvas.getContext("2d");
+        const playerEl = document.getElementById("player-gif");
+        const restartBtn = document.getElementById("restartBtn");
+        const clearBtn = document.getElementById("clearBtn");
+        let isMobile = ('ontouchstart' in window);
 
-function resizeGame() {
-    const gameWidth = 800;
-    const gameHeight = 300;
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
+        // [화질 개선 핵심] 기기 픽셀 비율 가져오기 (기본 1, 레티나/모바일은 2~3)
+        const dpr = window.devicePixelRatio || 1;
 
-    const scaleX = windowWidth / gameWidth;
-    const scaleY = windowHeight / gameHeight;
-    const scale = Math.min(scaleX, scaleY);
+        // 게임의 논리적 크기 (설계 사이즈)
+        const logicalWidth = 800;
+        const logicalHeight = 300;
 
-    container.style.transform = `scale(${scale})`;
-}
-window.addEventListener('resize', resizeGame);
-resizeGame();
+        function resizeGame() {
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
 
-ctx.imageSmoothingEnabled = false;
+            // 화면에 꽉 차게 비율 계산
+            const scaleX = windowWidth / logicalWidth;
+            const scaleY = windowHeight / logicalHeight;
+            const scale = Math.min(scaleX, scaleY);
 
-if (!ctx.roundRect) {
-    ctx.roundRect = function(x, y, w, h, r) {
-        if (w < 2 * r) r = w / 2;
-        if (h < 2 * r) r = h / 2;
-        this.beginPath();
-        this.moveTo(x + r, y);
-        this.arcTo(x + w, y, x + w, y + h, r);
-        this.arcTo(x + w, y + h, x, y + h, r);
-        this.arcTo(x, y + h, x, y, r);
-        this.arcTo(x, y, x + w, y, r);
-        this.closePath();
-    };
-}
+            // 컨테이너는 CSS transform으로 확대/축소
+            container.style.transform = `scale(${scale})`;
 
-let coffeeImg = new Image(); coffeeImg.src = "src/game/coffee.png"; 
-let bgImg = new Image(); bgImg.src = "src/game/bg.png"; 
+            // [중요] 캔버스 컨테이너의 CSS 사이즈는 논리적 크기로 고정
+            container.style.width = `${logicalWidth}px`;
+            container.style.height = `${logicalHeight}px`;
+        }
 
-const obstacleSources = [
-    "src/game/obstacle1.png", 
-    "src/game/obstacle2.png", 
-    "src/game/obstacle3.png" 
-];
-const obstacleImages = obstacleSources.map(src => {
-    const img = new Image();
-    img.src = src;
-    return img;
-});
+        function initHighDpiCanvas() {
+            // 1. 캔버스의 '물리적 픽셀' 수를 dpr만큼 늘림 (고화질)
+            canvas.width = logicalWidth * dpr;
+            canvas.height = logicalHeight * dpr;
 
-function drawImageAuto(img, x, y, w, h, fallbackColor) {
-    if (img && img.complete && img.naturalWidth > 0) {
-        ctx.drawImage(img, x, y, w, h);
-    } else {
-        ctx.fillStyle = fallbackColor;
-        ctx.fillRect(x, y, w, h);
-    }
-}
+            // 2. CSS로 보이는 크기는 논리적 크기로 고정
+            canvas.style.width = `${logicalWidth}px`;
+            canvas.style.height = `${logicalHeight}px`;
 
-let gameState = "play";
-let player, bg, obstacles, coffees;
-let frame, playerDistance, nextPatternDistance;
+            // 3. 그리기 좌표계를 dpr만큼 확대 (코드상의 좌표 800x300을 그대로 쓰기 위함)
+            ctx.scale(dpr, dpr);
 
-const obstacleTypes = [
-    { width: 70, height: 70 }, 
-    { width: 70, height: 70 },
-    { width: 70, height: 70 }
-];
-const obstacleHeights = [260, 210];
+            // [설정] 도트 스타일(픽셀아트)을 원하면 false, 부드러운 고화질 일러스트면 true
+            // 사용하시는 폰트가 레트로풍이라 false가 어울릴 수 있으나, 
+            // 이미지를 부드럽게 보고 싶다면 true로 변경하세요.
+            ctx.imageSmoothingEnabled = true;
+        }
 
-function initGame() {
-    // [수정됨] 웹(PC)에서는 부드럽게, 모바일에서는 묵직하게 분기 처리
-    // isMobile ? 모바일값 : 웹값
-    
-    player = {
-        x: 80,
-        y: 200,
-        width: 60, 
-        height: 60,
-        vy: 0,
-        
-        // 웹: 0.8 (부드러움) / 모바일: 1.5 (묵직함)
-        gravity: isMobile ? 1.5 : 0.8,    
-        
-        // 웹: -16 (적당함) / 모바일: -22 (강함)
-        // 중력을 낮추면 점프력도 낮춰야 화면 밖으로 나가지 않습니다.
-        jumpPower: isMobile ? -22 : -16,  
-        
-        jumpCount: 0,
-        speed: isMobile ? 11 : 8, // 웹에서는 속도도 6->8로 살짝 올려야 지루하지 않음
-        hp: 3 
-    };
+        // 초기화 실행
+        initHighDpiCanvas();
+        window.addEventListener('resize', resizeGame);
+        resizeGame();
 
-    bg = { x: 0, width: 8700, height: 300 };
-    
-    obstacles = [];
-    coffees = [];
-    frame = 0;
-    playerDistance = 0;
-    nextPatternDistance = 500;
-    
-    playerEl.style.display = "block";
-    gameState = "play";
-    restartBtn.style.display = "none";
-    clearBtn.style.display = "none";
-}
-initGame();
+        // --- 아래부터는 기존 게임 로직과 동일합니다 ---
 
-function doJump() {
-    if (gameState !== "play") return;
-    if (player.jumpCount < 2) {
-        player.vy = player.jumpPower;
-        player.jumpCount++;
-    }
-}
+        // 둥근 사각형 폴리필
+        if (!ctx.roundRect) {
+            ctx.roundRect = function (x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                this.beginPath();
+                this.moveTo(x + r, y);
+                this.arcTo(x + w, y, x + w, y + h, r);
+                this.arcTo(x + w, y + h, x, y + h, r);
+                this.arcTo(x, y + h, x, y, r);
+                this.arcTo(x, y, x + w, y, r);
+                this.closePath();
+            };
+        }
 
-// [수정됨] 모바일 터치 이벤트 핸들러 수정
-document.body.addEventListener("touchstart", e => { 
-    // 터치된 요소(target)가 버튼(.ui-btn)이면 기본 동작 허용(클릭)하고 점프하지 않음
-    if (e.target.classList.contains('ui-btn')) {
-        return; 
-    }
+        // 이미지 로드 (경로는 기존 그대로 사용)
+        let coffeeImg = new Image(); coffeeImg.src = "src/game/coffee.png";
+        let bgImg = new Image(); bgImg.src = "src/game/bg.png";
 
-    // 그 외(게임 화면)를 터치했을 때만 스크롤 방지 및 점프
-    e.preventDefault(); 
-    doJump(); 
-}, { passive: false });
-
-document.body.addEventListener("mousedown", (e) => {
-    if (e.target.classList.contains('ui-btn')) return;
-    doJump();
-});
-
-window.addEventListener("keydown", e => { if (e.code === "Space") doJump(); });
-
-function spawnObstacle(offset = 0, h = "random") {
-    const t = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
-    let yBase = h === "random" ? obstacleHeights[Math.floor(Math.random() * obstacleHeights.length)] : h;
-    const randomImg = obstacleImages[Math.floor(Math.random() * obstacleImages.length)];
-
-    // 랜덤 각도 고정
-    const randomAngle = Math.random() * Math.PI * 2;
-
-    obstacles.push({ 
-        x: canvas.width + offset + 50, 
-        y: yBase - t.height, 
-        width: t.width, 
-        height: t.height,
-        img: randomImg,
-        angle: randomAngle
-    });
-}
-
-function spawnPattern() {
-    const p = Math.floor(Math.random() * 4);
-    if (p === 0) spawnObstacle(0, "random");
-    if (p === 1) { spawnObstacle(0, 260); spawnObstacle(200, 260); }
-    if (p === 2) spawnObstacle(0, 210);
-    if (p === 3) { spawnObstacle(0, 260); spawnObstacle(250, 210); }
-    
-    nextPatternDistance = playerDistance + 600 + Math.random() * 300;
-}
-
-function spawnCoffee() {
-    coffees.push({ 
-        x: canvas.width + 50, 
-        y: 150, 
-        width: 40, 
-        height: 58
-    });
-}
-
-function collide(player, target) {
-    const marginX = 20; 
-    const marginY = 15; 
-
-    return (
-        player.x + marginX < target.x + target.width - marginX &&
-        player.x + player.width - marginX > target.x + marginX &&
-        player.y + marginY < target.y + target.height - marginY &&
-        player.y + player.height - marginY > target.y + marginY
-    );
-}
-
-function updateGame() {
-    if (gameState !== "play") return;
-
-    let isEndingPhase = (bg.x + bg.width <= canvas.width);
-
-    if (!isEndingPhase) {
-        bg.x -= player.speed * 0.3;
-
-        obstacles.forEach(o => {
-            o.x -= player.speed;
+        const obstacleSources = [
+            "src/game/obstacle1.png",
+            "src/game/obstacle2.png",
+            "src/game/obstacle3.png",
+            "src/game/obstacle4.png",
+            "src/game/obstacle5.png",
+            "src/game/obstacle6.png"
+        ];
+        const obstacleImages = obstacleSources.map(src => {
+            const img = new Image();
+            img.src = src;
+            return img;
         });
-        
-        coffees.forEach(c => c.x -= player.speed);
 
-        playerDistance += player.speed;
-        if (playerDistance >= nextPatternDistance) spawnPattern();
-        if (frame % 400 === 0) spawnCoffee();
-    } else {
-        player.x += player.speed;
-        if (player.x >= (canvas.width / 2) - (player.width / 2)) {
-            gameState = "clear";
-            clearBtn.style.display = "block"; 
-            return;
-        }
-    }
-
-    // 물리 엔진
-    player.vy += player.gravity;
-    player.y += player.vy;
-    if (player.y >= 260 - player.height) {
-        player.y = 260 - player.height;
-        player.vy = 0;
-        player.jumpCount = 0;
-    }
-    
-    playerEl.style.transform = `translate(${player.x}px, ${player.y}px)`;
-    playerEl.style.width = player.width + "px";
-    playerEl.style.height = player.height + "px";
-
-    obstacles = obstacles.filter(o => {
-        if (collide(player, o)) {
-            player.hp--;
-            if (player.hp <= 0) { 
-                gameState = "over"; 
-                restartBtn.style.display = "block"; 
+        function drawImageAuto(img, x, y, w, h, fallbackColor) {
+            if (img && img.complete && img.naturalWidth > 0) {
+                ctx.drawImage(img, x, y, w, h);
+            } else {
+                ctx.fillStyle = fallbackColor;
+                ctx.fillRect(x, y, w, h);
             }
-            return false; 
         }
-        return o.x + o.width > -100; 
-    });
 
-    coffees = coffees.filter(c => {
-        if (collide(player, c)) { 
-            if (player.hp < 3) player.hp++;
-            return false; 
+        let gameState = "play";
+        let player, bg, obstacles, coffees;
+        let frame, playerDistance, nextPatternDistance;
+
+        const obstacleTypes = [
+            { width: 70, height: 70 },
+            { width: 70, height: 70 },
+            { width: 70, height: 70 },
+            { width: 70, height: 70 },
+            { width: 70, height: 70 },
+            { width: 70, height: 70 }
+        ];
+        const obstacleHeights = [260, 20];
+
+        function initGame() {
+            player = {
+                x: 80,
+                y: 200,
+                width: 60,
+                height: 60,
+                vy: 0,
+                gravity: isMobile ? 1.5 : 0.8,
+                jumpPower: isMobile ? -22 : -16,
+                jumpCount: 0,
+                speed: isMobile ? 11 : 8,
+                hp: 3
+            };
+
+            bg = { x: 0, width: 8700, height: 300 }; // 배경 이미지 사이즈도 넉넉해야 함
+
+            obstacles = [];
+            coffees = [];
+            frame = 0;
+            playerDistance = 0;
+            nextPatternDistance = 500;
+
+            playerEl.style.display = "block";
+            gameState = "play";
+            restartBtn.style.display = "none";
+            clearBtn.style.display = "none";
         }
-        return c.x + c.width > 0;
-    });
-    
-    frame++;
-}
+        initGame();
 
-function drawUI() {
-    const maxDist = bg.width - canvas.width;
-    const currentDist = Math.abs(bg.x); 
-    let progress = currentDist / maxDist;
-    if (progress > 1) progress = 1;
-
-    ctx.fillStyle = "#555";
-    if(ctx.roundRect) {
-        ctx.roundRect(250, 20, 300, 12, 6); ctx.fill();
-        ctx.fillStyle = "#00FFAA"; ctx.beginPath();
-        ctx.roundRect(250, 20, 300 * progress, 12, 6); ctx.fill();
-    } else {
-        ctx.fillRect(250, 20, 300, 12);
-        ctx.fillStyle = "#00FFAA"; ctx.fillRect(250, 20, 300 * progress, 12);
-    }
-
-    for (let i = 0; i < 3; i++) { 
-        if (i < player.hp) {
-            drawImageAuto(coffeeImg, 10 + i * 30, 40, 20, 20, "#EBC15A");
-        } 
-    }
-}
-
-function drawGame() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    drawImageAuto(bgImg, bg.x, 0, bg.width, bg.height, "#444");
-    
-    ctx.fillStyle = "#666"; ctx.fillRect(0, 260, canvas.width, 5);
-    
-    obstacles.forEach(o => {
-        ctx.save(); 
-        ctx.translate(o.x + o.width / 2, o.y + o.height / 2);
-        ctx.rotate(o.angle);
-        
-        if (o.img && o.img.complete && o.img.naturalWidth > 0) {
-            ctx.drawImage(o.img, -o.width / 2, -o.height / 2, o.width, o.height);
-        } else {
-            ctx.fillStyle = "#FF5252";
-            ctx.fillRect(-o.width / 2, -o.height / 2, o.width, o.height);
+        function doJump() {
+            if (gameState !== "play") return;
+            if (player.jumpCount < 2) {
+                player.vy = player.jumpPower;
+                player.jumpCount++;
+            }
         }
-        ctx.restore(); 
-    });
-    
-    coffees.forEach(c => {
-        drawImageAuto(coffeeImg, c.x, c.y, c.width, c.height, "#EBC15A");
-    });
-    
-    if (gameState === "play") drawUI();
-    
-    if (gameState === "over") { 
-        ctx.fillStyle = "rgba(0,0,0,0.5)";
-        ctx.fillRect(0,0,canvas.width, canvas.height);
-        ctx.fillStyle = "red"; 
-        ctx.font = "bold 40px 'NeoDonggeunmo'";
-        ctx.textAlign = "center";
-        ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2); 
-    }
-    if (gameState === "clear") { 
-        ctx.fillStyle = "rgba(0,0,0,0.5)";
-        ctx.fillRect(0,0,canvas.width, canvas.height);
-        ctx.fillStyle = "yellow"; 
-        ctx.font = "bold 40px 'NeoDonggeunmo'";
-        ctx.textAlign = "center";
-        ctx.fillText("GAME CLEAR!", canvas.width/2, canvas.height/2); 
-    }
-}
 
-function loop() { 
-    updateGame(); 
-    drawGame(); 
-    requestAnimationFrame(loop); 
-}
-loop();
+        document.body.addEventListener("touchstart", e => {
+            if (e.target.classList.contains('ui-btn')) return;
+            e.preventDefault();
+            doJump();
+        }, { passive: false });
 
-restartBtn.onclick = () => { location.reload(); };
-clearBtn.onclick = () => { location.href = "wish.html"; };
+        document.body.addEventListener("mousedown", (e) => {
+            if (e.target.classList.contains('ui-btn')) return;
+            doJump();
+        });
 
-</script>
+        window.addEventListener("keydown", e => { if (e.code === "Space") doJump(); });
+
+        function spawnObstacle(offset = 0, h = "random") {
+            const t = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+            let yBase = h === "random" ? obstacleHeights[Math.floor(Math.random() * obstacleHeights.length)] : h;
+            const randomImg = obstacleImages[Math.floor(Math.random() * obstacleImages.length)];
+            const randomAngle = Math.random() * Math.PI * 2;
+
+            obstacles.push({
+                x: logicalWidth + offset + 50, // canvas.width 대신 logicalWidth 사용 권장
+                y: yBase - t.height,
+                width: t.width,
+                height: t.height,
+                img: randomImg,
+                angle: randomAngle
+            });
+        }
+
+        function spawnPattern() {
+            const p = Math.floor(Math.random() * 4);
+            if (p === 0) spawnObstacle(0, "random");
+
+            // [수정] 210 -> 230으로 변경 (더 낮게 뜸)
+            if (p === 1) { spawnObstacle(0, 260); spawnObstacle(200, 260); }
+            if (p === 2) spawnObstacle(0, 230);
+            if (p === 3) { spawnObstacle(0, 260); spawnObstacle(250, 230); }
+
+            nextPatternDistance = playerDistance + 600 + Math.random() * 300;
+        }
+        function spawnCoffee() {
+            coffees.push({
+                x: logicalWidth + 50,
+                y: 150,
+                width: 40,
+                height: 58
+            });
+        }
+
+        function collide(player, target) {
+            const marginX = 20;
+            const marginY = 15;
+            return (
+                player.x + marginX < target.x + target.width - marginX &&
+                player.x + player.width - marginX > target.x + marginX &&
+                player.y + marginY < target.y + target.height - marginY &&
+                player.y + player.height - marginY > target.y + marginY
+            );
+        }
+
+        function updateGame() {
+            if (gameState !== "play") return;
+
+            let isEndingPhase = (bg.x + bg.width <= logicalWidth);
+
+            if (!isEndingPhase) {
+                bg.x -= player.speed * 0.3;
+                obstacles.forEach(o => o.x -= player.speed);
+                coffees.forEach(c => c.x -= player.speed);
+
+                playerDistance += player.speed;
+                if (playerDistance >= nextPatternDistance) spawnPattern();
+                if (frame % 300 === 0) spawnCoffee();
+            } else {
+                player.x += player.speed;
+                if (player.x >= (logicalWidth / 2) - (player.width / 2)) {
+                    gameState = "clear";
+                    clearBtn.style.display = "block";
+                    return;
+                }
+            }
+
+            player.vy += player.gravity;
+            player.y += player.vy;
+            if (player.y >= 260 - player.height) {
+                player.y = 260 - player.height;
+                player.vy = 0;
+                player.jumpCount = 0;
+            }
+
+            playerEl.style.transform = `translate(${player.x}px, ${player.y}px)`;
+            playerEl.style.width = player.width + "px";
+            playerEl.style.height = player.height + "px";
+
+            obstacles = obstacles.filter(o => {
+                if (collide(player, o)) {
+                    player.hp--;
+                    if (player.hp <= 0) {
+                        gameState = "over";
+                        restartBtn.style.display = "block";
+                    }
+                    return false;
+                }
+                return o.x + o.width > -100;
+            });
+
+            coffees = coffees.filter(c => {
+                if (collide(player, c)) {
+                    if (player.hp < 3) player.hp++;
+                    return false;
+                }
+                return c.x + c.width > 0;
+            });
+
+            frame++;
+        }
+
+        function drawUI() {
+            // UI 그리기도 logicalWidth 기준
+            const maxDist = bg.width - logicalWidth;
+            const currentDist = Math.abs(bg.x);
+            let progress = currentDist / maxDist;
+            if (progress > 1) progress = 1;
+
+            ctx.fillStyle = "#555";
+            if (ctx.roundRect) {
+                ctx.roundRect(250, 20, 300, 12, 6); ctx.fill();
+                ctx.fillStyle = "#00FFAA"; ctx.beginPath();
+                ctx.roundRect(250, 20, 300 * progress, 12, 6); ctx.fill();
+            } else {
+                ctx.fillRect(250, 20, 300, 12);
+                ctx.fillStyle = "#00FFAA"; ctx.fillRect(250, 20, 300 * progress, 12);
+            }
+
+            for (let i = 0; i < 3; i++) {
+                if (i < player.hp) {
+                    drawImageAuto(coffeeImg, 10 + i * 30, 40, 20, 20, "#EBC15A");
+                }
+            }
+        }
+
+        function drawGame() {
+            // Canvas 전체 지우기 (논리적 크기 사용)
+            ctx.clearRect(0, 0, logicalWidth, logicalHeight);
+
+            drawImageAuto(bgImg, bg.x, 0, bg.width, bg.height, "#444");
+
+            ctx.fillStyle = "#666"; ctx.fillRect(0, 260, logicalWidth, 5);
+
+            obstacles.forEach(o => {
+                ctx.save();
+                ctx.translate(o.x + o.width / 2, o.y + o.height / 2);
+                ctx.rotate(o.angle);
+
+                if (o.img && o.img.complete && o.img.naturalWidth > 0) {
+                    ctx.drawImage(o.img, -o.width / 2, -o.height / 2, o.width, o.height);
+                } else {
+                    ctx.fillStyle = "#FF5252";
+                    ctx.fillRect(-o.width / 2, -o.height / 2, o.width, o.height);
+                }
+                ctx.restore();
+            });
+
+            coffees.forEach(c => {
+                drawImageAuto(coffeeImg, c.x, c.y, c.width, c.height, "#EBC15A");
+            });
+
+            if (gameState === "play") drawUI();
+
+            if (gameState === "over") {
+                ctx.fillStyle = "rgba(0,0,0,0.5)";
+                ctx.fillRect(0, 0, logicalWidth, logicalHeight);
+                ctx.fillStyle = "red";
+                ctx.font = "bold 40px 'NeoDonggeunmo'";
+                ctx.textAlign = "center";
+                ctx.fillText("GAME OVER", logicalWidth / 2, logicalHeight / 2);
+            }
+            if (gameState === "clear") {
+                ctx.fillStyle = "rgba(0,0,0,0.5)";
+                ctx.fillRect(0, 0, logicalWidth, logicalHeight);
+                ctx.fillStyle = "yellow";
+                ctx.font = "bold 40px 'NeoDonggeunmo'";
+                ctx.textAlign = "center";
+                ctx.fillText("GAME CLEAR!", logicalWidth / 2, logicalHeight / 2);
+            }
+        }
+
+        function loop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(loop);
+        }
+        loop();
+
+        restartBtn.onclick = () => { location.reload(); };
+        clearBtn.onclick = () => { location.href = "wish.html"; };
+    </script>
 
 </body>
+
 </html>
