@@ -208,32 +208,36 @@
         const obstacleHeights = [260, 20];
 
         function initGame() {
-            player = {
-                x: 80,
-                y: 200,
-                width: 60,
-                height: 60,
-                vy: 0,
-                gravity: isMobile ? 1.5 : 0.8,
-                jumpPower: isMobile ? -22 : -16,
-                jumpCount: 0,
-                speed: isMobile ? 11 : 8,
-                hp: 3
-            };
+    player = {
+        x: 80,
+        y: 200,
+        width: 60,
+        height: 60,
+        vy: 0,
+        gravity: isMobile ? 1.5 : 0.8,
+        jumpPower: isMobile ? -22 : -16,
+        jumpCount: 0,
+        
+        // ▼ [수정] 속도 값을 낮췄습니다. (기존: 11 : 8 -> 변경: 7 : 5)
+        // 숫자가 클수록 빠르고, 작을수록 느려집니다.
+        speed: isMobile ? 7 : 5, 
+        
+        hp: 3
+    };
 
-            bg = { x: 0, width: 8700, height: 300 }; // 배경 이미지 사이즈도 넉넉해야 함
+    bg = { x: 0, width: 8700, height: 300 };
 
-            obstacles = [];
-            coffees = [];
-            frame = 0;
-            playerDistance = 0;
-            nextPatternDistance = 500;
+    obstacles = [];
+    coffees = [];
+    frame = 0;
+    playerDistance = 0;
+    nextPatternDistance = 500;
 
-            playerEl.style.display = "block";
-            gameState = "play";
-            restartBtn.style.display = "none";
-            clearBtn.style.display = "none";
-        }
+    playerEl.style.display = "block";
+    gameState = "play";
+    restartBtn.style.display = "none";
+    clearBtn.style.display = "none";
+}
         initGame();
 
         function doJump() {

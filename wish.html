@@ -55,7 +55,9 @@ function sendWish() {
     ws.send(JSON.stringify(payload));
 
     alert("🎉 소원을 보냈어요!");
-    document.getElementById("wishBox").value = "";
+    
+    // ▼▼▼ [수정된 부분] 확인 버튼 누르면 인덱스 페이지로 이동 ▼▼▼
+    window.location.href = "index.html"; 
 }
 </script>
 </body>
