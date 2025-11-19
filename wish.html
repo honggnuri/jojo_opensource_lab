@@ -32,12 +32,40 @@
 <button onclick="sendWish()">소원 보내기</button>
 
 <script>
-// 방금 만드신 AWS 주소입니다!
 const WSS_URL = "wss://12spzvb7ok.execute-api.ap-southeast-2.amazonaws.com/production/";
-const ws = new WebSocket(WSS_URL);
+let ws;
+let pingInterval; // 핑을 보내는 타이머 변수
 
-ws.onopen = () => console.log("📡 서버 연결 성공! (wish)");
-ws.onerror = e => console.log("🔥 에러:", e);
+function connect() {
+    ws = new WebSocket(WSS_URL);
+
+    ws.onopen = () => {
+        console.log("📡 서버 연결 성공! (wish)");
+
+        // ▼▼▼ [추가된 부분] 연결 유지용 핑(Ping) 보내기 ▼▼▼
+        // 30초(30000ms)마다 서버에 메시지를 보냅니다.
+        pingInterval = setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+                // AWS Lambda 형식을 맞춰서 'ping'이라는 액션을 보냅니다.
+                // (단순 텍스트 '.'을 보내면 서버 설정에 따라 에러가 날 수 있어 JSON으로 보냅니다)
+                const heartbeat = { action: "ping" }; 
+                ws.send(JSON.stringify(heartbeat));
+                console.log("💓 연결 유지 중 (ping sent)");
+            }
+        }, 30000); 
+    };
+
+    ws.onerror = e => console.log("🔥 에러:", e);
+
+    // 연결이 끊어지면 타이머도 해제
+    ws.onclose = () => {
+        console.log("연결 종료");
+        clearInterval(pingInterval);
+    };
+}
+
+// 페이지 로드 시 연결 시작
+connect();
 
 function sendWish() {
     const wish = document.getElementById("wishBox").value.trim();
@@ -46,17 +74,24 @@ function sendWish() {
         return;
     }
 
-    // AWS Lambda가 알아듣는 형식으로 포장해서 보냅니다.
     const payload = {
         action: "sendWish",
         message: wish
     };
 
+    // 연결이 끊겨있으면 다시 연결 시도 후 보내기 (안전장치)
+    if (ws.readyState !== WebSocket.OPEN) {
+        alert("서버와 다시 연결 중입니다. 잠시 후 다시 눌러주세요.");
+        connect();
+        return;
+    }
+
     ws.send(JSON.stringify(payload));
 
     alert("🎉 소원을 보냈어요!");
     
-    // ▼▼▼ [수정된 부분] 확인 버튼 누르면 인덱스 페이지로 이동 ▼▼▼
+    // 타이머 정리 후 이동
+    clearInterval(pingInterval);
     window.location.href = "index.html"; 
 }
 </script>
