@@ -4,54 +4,44 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>러너 게임 - 시작</title>
-
 <style>
-    /* 폰트 적용 (게임 페이지와 통일감 유지) */
-    @font-face {
-        font-family: 'NeoDonggeunmo';
-        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.3/NeoDunggeunmo.woff') format('woff');
-        font-weight: normal;
-        font-display: swap;
-    }
-
     body {
         margin: 0;
         padding: 0;
         height: 100vh;
-        
-        /* 배경 이미지 설정 부분 */
-        /* 'background.png' 부분을 실제 이미지 파일명으로 바꿔주세요 */
-        background-image: url('src/ui/index.png'); 
-        background-size: cover;      /* 화면에 꽉 차게 */
-        background-position: center; /* 중앙 정렬 */
+        background-image: url('src/ui/index.png');
+        background-size: cover;
+        background-position: center;
         background-repeat: no-repeat;
 
-        /* 내용물 중앙 정렬 (Flexbox) */
         display: flex;
         justify-content: center;
         align-items: center;
-        flex-direction: column;
+        position: relative;
     }
-.start-image-btn {
-        width: 220px; /* 이미지 너비 조정, 필요에 따라 변경 */
-        height: auto; /* 비율 유지 */
+
+    .start-image-btn {
+        width: 24vw;   /* 화면 폭에 따라 조절되는 버튼 크기 */
+        max-width: 260px;
         cursor: pointer;
-        
-        /* 버튼을 아래로 이동 (이전과 동일하게 margin-top 사용) */
-        margin-top: 250px; /* 원하는 만큼 픽셀 값을 조정하세요 */
-margin-left: 640px;
-        /* 이미지에 마우스를 올렸을 때 효과 추가 (선택 사항) */
+
+        position: absolute;
+        top: 80%;   /* 화면 높이 기준 상대 위치 */
+        left: 84%;  /* 화면 너비 기준 상대 위치 */
+        transform: translate(-50%, -50%); /* 중앙 기준으로 이동 */
+
         transition: transform 0.1s ease-in-out;
     }
 
     .start-image-btn:hover {
-        transform: scale(1.02); /* 살짝 커지는 효과 */
+        transform: translate(-50%, -50%) scale(1.02);
     }
 
     .start-image-btn:active {
-        transform: scale(0.98); /* 클릭 시 살짝 작아지는 효과 */
+        transform: translate(-50%, -50%) scale(0.98);
     }
 </style>
+
 </head>
 <body>
 

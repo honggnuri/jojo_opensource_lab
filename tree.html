@@ -4,110 +4,66 @@
 <head>
     <meta charset="UTF-8" />
     <title>조형대 소원트리</title>
-    <style>
-        /* [폰트 정의 추가] 강원교육새음 */
-        @font-face {
-            font-family: 'GangwonEducationSaeum';
-            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2201-2@1.0/GangwonEduSaeeum_OTFMediumA.woff') format('woff');
-            font-weight: normal;
-            font-display: swap;
-        }
+   <style>
+    /* ---------------------------
+       1) 비트비트 폰트 추가
+    ----------------------------*/
+    @font-face {
+        font-family: 'DnfBitbeatV2';
+        src: url('//cdn.df.nexon.com/img/common/font/DNFBitBitv2.otf') format('opentype');
+        font-weight: 400;
+        font-display: swap;
+    }
 
-        body {
-            /* 폰트 적용 */
-            font-family: 'GangwonEducationSaeum', sans-serif;
-            color: white;
-            text-align: center;
-            padding-top: 40px;
-            letter-spacing: -6%;
-            margin: 0;
+    /* ---------------------------
+       2) 손글씨 폰트
+    ----------------------------*/
+    @font-face {
+        font-family: 'GangwonEducationSaeum';
+        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2201-2@1.0/GangwonEduSaeeum_OTFMediumA.woff') format('woff');
+        font-weight: normal;
+        font-display: swap;
+    }
 
-            background: url('./src/tree/BG_tree.png') no-repeat center top fixed;
-            background-size: auto 100vh;
+    body {
+        font-family: 'GangwonEducationSaeum', sans-serif;
+        color: white;
+        text-align: center;
+        padding-top: 40px;
+        margin: 0;
 
-            height: 100vh;
-            overflow: hidden;
+        background: url('./src/tree/BG_tree.png') no-repeat center top fixed;
+        background-size: auto 100vh;
 
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            align-items: center;
-        }
+        height: 100vh;
+        overflow: hidden;
 
-        h1 {
-            margin-bottom: 20px;
-            font-size: 70px;
-            /* 폰트 특성에 맞춰 조금 키움 */
-            text-shadow: 0 0 10px rgba(21, 143, 15, 0.156), 0 0 20px rgba(21, 143, 15, 0.156);
-        }
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+    }
 
-        p {
-            margin-bottom: 30px;
-            font-size: 32px;
-            text-shadow: 0 0 5px rgba(21, 143, 15, 0.156);
-        }
+    /* ---------------------------------
+       제목만 DnfBitbeatV2 폰트 적용!
+    ----------------------------------*/
+    h1 {
+        font-family: 'DnfBitbeatV2', sans-serif;
+        margin-bottom: 20px;
+        font-size: 70px;
+        text-shadow: 0 0 10px rgba(21, 143, 15, 0.156),
+                     0 0 20px rgba(21, 143, 15, 0.156);
+    }
 
-        #tree-container {
-            width: 100%;
-            max-width: 600px;
-            height: calc(100vh - 150px);
-            overflow: hidden;
+    p {
+        margin-bottom: 30px;
+        font-size: 32px;
+        text-shadow: 0 0 5px rgba(21, 143, 15, 0.156);
+    }
 
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: center;
-            padding-bottom: 40px;
-        }
+    /* 이하 동일 */
+</style>
 
-        #wish-list {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: center;
-        }
-
-        .wish-card {
-            background: transparent;
-            box-shadow: none;
-
-            padding: 5px 0;
-            margin: 2px 0;
-
-            color: #ffffff;
-            text-shadow:
-                -1px -1px 0 rgba(21, 143, 15, 0.156),
-                1px -1px 0 rgba(21, 143, 15, 0.156),
-                -1px 1px 0 rgba(21, 143, 15, 0.156),
-                1px 1px 0 rgba(21, 143, 15, 0.156),
-                0 0 10px rgba(21, 143, 15, 0.156);
-
-            /* [폰트 크기 조정] 손글씨 폰트는 얇아서 기존보다 키워야 잘 보입니다 */
-            font-size: 50px;
-            font-weight: normal;
-            /* 이 폰트는 bold가 없거나 뭉개질 수 있어 normal 권장 */
-
-            animation: slideUp 0.5s ease-out;
-            word-break: keep-all;
-            width: 100%;
-            text-align: center;
-
-            flex-shrink: 0;
-        }
-
-        @keyframes slideUp {
-            0% {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
 </head>
 
 <body>
