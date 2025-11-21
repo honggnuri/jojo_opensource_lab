@@ -101,67 +101,107 @@
         <div id="wish-list"></div>
     </div>
 
-    <script>
-        const WSS_URL = "wss://12spzvb7ok.execute-api.ap-southeast-2.amazonaws.com/production/";
-        const ws = new WebSocket(WSS_URL);
+   <script>
+const WSS_URL = "wss://12spzvb7ok.execute-api.ap-southeast-2.amazonaws.com/production/";
 
-        // 전체 히스토리 저장
-        let allWishes = JSON.parse(localStorage.getItem("wishHistory") || "[]");
+let ws = null;
+let reconnectTimeout = null;
+let pingInterval = null;
 
-        const MAX_WISHES_DISPLAYED = 10;
-        const wishList = document.getElementById("wish-list");
+// 히스토리 불러오기
+let allWishes = JSON.parse(localStorage.getItem("wishHistory") || "[]");
 
-        // 페이지 로드 시 기존 히스토리 중 마지막 10개 표시
-        function renderInitialWishes() {
-            const recent = allWishes.slice(-MAX_WISHES_DISPLAYED);
-            recent.forEach(text => {
-                const div = document.createElement("div");
-                div.className = "wish-card";
-                div.textContent = text;
-                wishList.appendChild(div);
-            });
+const MAX_WISHES_DISPLAYED = 10;
+const wishList = document.getElementById("wish-list");
 
-            // 화면 최신화
-            wishList.scrollTop = wishList.scrollHeight;
+// 초기 렌더
+function renderInitialWishes() {
+    const recent = allWishes.slice(-MAX_WISHES_DISPLAYED);
+    recent.forEach(text => {
+        const div = document.createElement("div");
+        div.className = "wish-card";
+        div.textContent = text;
+        wishList.appendChild(div);
+    });
+    wishList.scrollTop = wishList.scrollHeight;
+}
+renderInitialWishes();
+
+/* ------------------------------------------------------
+   🔥 1) 웹소켓 자동 연결 함수
+------------------------------------------------------- */
+function connect() {
+    ws = new WebSocket(WSS_URL);
+
+    ws.onopen = () => {
+        console.log("📡 서버 연결 성공! (tree)");
+
+        // 이전 reconnect 타이머 초기화
+        if (reconnectTimeout) {
+            clearTimeout(reconnectTimeout);
+            reconnectTimeout = null;
         }
-        renderInitialWishes();
 
-        ws.onopen = () => console.log("📡 서버 연결 성공! (tree)");
-
-        ws.onmessage = (event) => {
-            console.log("📩 메시지 도착:", event.data);
-
-            try {
-                const data = JSON.parse(event.data);
-                if (data.message) {
-                    addWish(data.message);
-                }
-            } catch (e) {
-                console.log("무시된 메시지:", event.data);
+        // ping(keepalive) 시작
+        pingInterval = setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: "ping" }));
+                console.log("💓 ping sent");
             }
-        };
+        }, 30000);
+    };
 
-        // 새로운 메시지 처리
-        function addWish(text) {
-            // 저장
-            allWishes.push(text);
-            localStorage.setItem("wishHistory", JSON.stringify(allWishes));
+    ws.onmessage = (event) => {
+        console.log("📩 메시지 도착:", event.data);
 
-            // 카드 생성
-            const div = document.createElement("div");
-            div.className = "wish-card";
-            div.textContent = text;
-            wishList.appendChild(div);
-
-            // 자동 아래 스크롤
-            wishList.scrollTop = wishList.scrollHeight;
-
-            // 10개 이상이면 맨 위 제거
-            if (wishList.children.length > MAX_WISHES_DISPLAYED) {
-                wishList.removeChild(wishList.children[0]);
-            }
+        try {
+            const data = JSON.parse(event.data);
+            if (data.message) addWish(data.message);
+        } catch (e) {
+            console.log("무시된 메시지:", event.data);
         }
-    </script>
+    };
+
+    ws.onerror = (e) => {
+        console.log("🔥 에러:", e);
+    };
+
+    ws.onclose = () => {
+        console.log("⚠️ 연결 끊김 → 2초 후 재접속");
+
+        // ping 멈추기
+        clearInterval(pingInterval);
+
+        // 자동 재접속
+        reconnectTimeout = setTimeout(() => connect(), 2000);
+    };
+}
+
+// 최초 실행
+connect();
+
+/* ------------------------------------------------------
+   🔥 2) 새로운 소원 카드 추가 함수
+------------------------------------------------------- */
+function addWish(text) {
+    allWishes.push(text);
+    localStorage.setItem("wishHistory", JSON.stringify(allWishes));
+
+    const div = document.createElement("div");
+    div.className = "wish-card";
+    div.textContent = text;
+    wishList.appendChild(div);
+
+    // 자동 아래로 스크롤
+    wishList.scrollTop = wishList.scrollHeight;
+
+    // 10개 유지
+    if (wishList.children.length > MAX_WISHES_DISPLAYED) {
+        wishList.removeChild(wishList.children[0]);
+    }
+}
+</script>
+
 
 </body>
 </html>
