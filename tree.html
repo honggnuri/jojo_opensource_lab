@@ -11,12 +11,13 @@
             font-weight: 400;
             font-display: swap;
         }
+
         @font-face {
-    font-family: 'GangwonEducationSaeum';
-    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2201-2@1.0/GangwonEduSaeeum_OTFMediumA.woff') format('woff');
-    font-weight: normal;
-    font-display: swap;
-}
+            font-family: 'GangwonEducationSaeum';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2201-2@1.0/GangwonEduSaeeum_OTFMediumA.woff') format('woff');
+            font-weight: normal;
+            font-display: swap;
+        }
 
         h1 {
             font-family: 'DnfBitbeatV2', sans-serif;
@@ -33,6 +34,7 @@
             line-height: 1.15;
             text-shadow: 0 0 12px rgba(21, 143, 15, 0.35);
         }
+
         body {
             font-family: 'GangwonEducationSaeum', sans-serif;
             color: white;
@@ -72,7 +74,7 @@
         .wish-card {
             font-family: 'GangwonEducationSaeum', sans-serif;
             font-size: 38px;
-        width: 60%;
+            width: 60%;
             background: rgba(255, 255, 255, 0.13);
             padding: 8px 18px;
             animation: fadeIn 0.4s ease-out;
@@ -107,14 +109,29 @@
         const WSS_URL = "wss://12spzvb7ok.execute-api.ap-southeast-2.amazonaws.com/production/";
         const ws = new WebSocket(WSS_URL);
 
-        let wishCount = 0;
+        // ⭐ 모든 위시 저장 (새로고침 유지)
+        let allWishes = JSON.parse(localStorage.getItem("wishHistory") || "[]");
+
         const MAX_WISHES_DISPLAYED = 10;
         const wishList = document.getElementById("wish-list");
+
+        // ⭐ 페이지 로드 시 기존 저장 내역 중 마지막 10개만 보여줌
+        function renderInitialWishes() {
+            const recent = allWishes.slice(-MAX_WISHES_DISPLAYED);
+            recent.forEach(text => {
+                const div = document.createElement("div");
+                div.className = "wish-card";
+                div.textContent = text;
+                wishList.appendChild(div);
+            });
+        }
+        renderInitialWishes();
 
         ws.onopen = () => console.log("📡 서버 연결 성공! (tree)");
 
         ws.onmessage = (event) => {
             console.log("📩 메시지 도착:", event.data);
+
             try {
                 const data = JSON.parse(event.data);
                 if (data.message) {
@@ -125,14 +142,23 @@
             }
         };
 
+        // ⭐ 새 메시지가 들어오면: 화면 + 전체 히스토리 모두 저장
         function addWish(text) {
+            // 전체 저장
+            allWishes.push(text);
+            localStorage.setItem("wishHistory", JSON.stringify(allWishes));
+
+            // 화면 표시
             const div = document.createElement("div");
             div.className = "wish-card";
             div.textContent = text;
 
             wishList.appendChild(div);
-            wishCount++;
 
+            // 자동 스크롤
+            wishList.scrollTop = wishList.scrollHeight;
+
+            // 화면에는 10개만 유지
             if (wishList.children.length > MAX_WISHES_DISPLAYED) {
                 wishList.removeChild(wishList.children[0]);
             }
