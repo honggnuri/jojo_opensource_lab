@@ -54,20 +54,26 @@
         }
 
         /* 위시 카드 리스트 */
-        #wish-list {
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
+       #wish-list {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
 
-            width: 60%;
-            height: 100%;    /* tree-container 안에서 스크롤 */
-            overflow-y: auto;
-            overflow-x: hidden;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
 
-            scroll-behavior: smooth;
-            align-items: flex-start; /* 위에서 아래로 정렬 */
-            padding-right: 15px;
-        }
+    scroll-behavior: smooth;
+    align-items: flex-start;
+    padding-right: 15px;
+
+    /* 🔥스크롤바 숨기기*/
+    scrollbar-width: none; /* Firefox */
+}
+#wish-list::-webkit-scrollbar {
+    display: none; /* Chrome / Safari */
+}
 
         /* 카드 스타일 */
         .wish-card {
